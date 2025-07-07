@@ -1,0 +1,101 @@
+CREATE TABLE Utente (
+    Username VARCHAR(50) PRIMARY KEY,
+    Password TEXT NOT NULL
+);
+
+CREATE TABLE Cliente (
+    CF VARCHAR(16) PRIMARY KEY,
+    Nome VARCHAR(100) NOT NULL,
+    Username VARCHAR(50) UNIQUE NOT NULL,
+    FOREIGN KEY (Username) REFERENCES Utente(Username) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE Manager (
+    CF VARCHAR(16) PRIMARY KEY,
+    Nome VARCHAR(100) NOT NULL,
+    Username VARCHAR(50) UNIQUE NOT NULL,
+    FOREIGN KEY (Username) REFERENCES Utente(Username) ON DELETE CASCADE
+);
+
+CREATE TABLE Negozio (
+    IDNegozio SERIAL PRIMARY KEY,
+    ManagerCF VARCHAR(16) UNIQUE,
+    OrariApertura VARCHAR(100),
+    Indirizzo TEXT NOT NULL,
+    Aperto BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (ManagerCF) REFERENCES Manager(CF) ON DELETE CASCADE
+);
+
+CREATE TABLE Prodotto (
+    IDProdotto SERIAL PRIMARY KEY,
+    Nome VARCHAR(100) NOT NULL,
+    Descrizione TEXT
+);
+
+CREATE TABLE Vende (
+    NegozioID INTEGER,
+    ProdottoID INTEGER,
+    Prezzo NUMERIC(8,2) NOT NULL,
+    Quantita INTEGER DEFAULT 0,
+    PRIMARY KEY (NegozioID, ProdottoID),
+    FOREIGN KEY (NegozioID) REFERENCES Negozio(IDNegozio) ON DELETE CASCADE,
+    FOREIGN KEY (ProdottoID) REFERENCES Prodotto(IDProdotto) ON DELETE CASCADE
+);
+
+CREATE TABLE Fornitore (
+    PIVA VARCHAR(11) PRIMARY KEY,
+    Indirizzo TEXT NOT NULL
+);
+
+CREATE TABLE Fornisce (
+    FornitorePIVA VARCHAR(11),
+    ProdottoID INTEGER,
+    PrezzoUnitario NUMERIC(8,2) NOT NULL,
+    Disponibilita INTEGER DEFAULT 0,
+    PRIMARY KEY (FornitorePIVA, ProdottoID),
+    FOREIGN KEY (FornitorePIVA) REFERENCES Fornitore(PIVA) ON DELETE CASCADE,
+    FOREIGN KEY (ProdottoID) REFERENCES Prodotto(IDProdotto) ON DELETE CASCADE
+);
+
+CREATE TABLE Ordina (
+    IDOrdine SERIAL PRIMARY KEY,
+    NegozioID INTEGER,
+    ProdottoID INTEGER,
+    FornitorePIVA VARCHAR(11),
+    DataConsegna DATE NOT NULL,
+    Quantita INTEGER NOT NULL,
+    FOREIGN KEY (NegozioID) REFERENCES Negozio(IDNegozio) ON DELETE RESTRICT,
+    FOREIGN KEY (ProdottoID) REFERENCES Prodotto(IDProdotto) ON DELETE RESTRICT,
+    FOREIGN KEY (FornitorePIVA) REFERENCES Fornitore(PIVA) ON DELETE RESTRICT
+);
+
+CREATE TABLE Fattura (
+    IDFattura SERIAL PRIMARY KEY,
+    ClienteCF VARCHAR(16) NOT NULL,
+    NegozioID INTEGER NOT NULL,
+    DataAcquisto DATE NOT NULL,
+    ScontoApplicato NUMERIC(5,2) DEFAULT 0.00,
+    TotalePagato NUMERIC(10,2) NOT NULL,
+    FOREIGN KEY (ClienteCF) REFERENCES Cliente(CF) ON DELETE RESTRICT,
+    FOREIGN KEY (NegozioID) REFERENCES Negozio(IDNegozio) ON DELETE RESTRICT
+);
+
+CREATE TABLE VoceFattura (
+    FatturaID INTEGER,
+    ProdottoID INTEGER,
+    PrezzoUnitario NUMERIC(8,2) NOT NULL,
+    Quantita INTEGER DEFAULT 1 CHECK (Quantita > 0),
+    PRIMARY KEY (FatturaID, ProdottoID),
+    FOREIGN KEY (FatturaID) REFERENCES Fattura(IDFattura) ON DELETE CASCADE,
+    FOREIGN KEY (ProdottoID) REFERENCES Prodotto(IDProdotto) ON DELETE RESTRICT
+);
+
+CREATE TABLE Tessera (
+    IDTessera SERIAL PRIMARY KEY,
+    DataRichiesta DATE NOT NULL,
+    NegozioID INTEGER,
+    ClienteCF VARCHAR(16) UNIQUE,
+    SaldoPunti INTEGER DEFAULT 0 CHECK (SaldoPunti >= 0),
+    FOREIGN KEY (NegozioID) REFERENCES Negozio(IDNegozio) ON DELETE CASCADE,
+    FOREIGN KEY (ClienteCF) REFERENCES Cliente(CF) ON DELETE CASCADE
+);

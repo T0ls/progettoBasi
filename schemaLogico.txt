@@ -1,0 +1,31 @@
+RELAZIONI 			ATTRIBUTI
+- Negozio			(IDNegozio (PK), ManagerCF (FK), OrariApertura, Indirizzo, Aperto)
+- Vende				(NegozioID (FK), ProdottoID (FK) (PK = entrambi), Prezzo, Quantita)
+- Prodotto			(IDProdotto (PK), Nome, Descrizione)
+- Fornisce			(FornitorePIVA (FK), ProdottoID (FK)  (PK = entrambi), PrezzoUnitario, Disponibilita)
+- Fornitore			(PIVA (PK), Indirizzo)
+- Ordina			(IDOrdine (PK), NegozioID (FK), ProdottoID (FK), FornitorePIVA (FK), DataConsegna, Quantita)
+- Fattura			(IDFattura (PK), ClienteCF (FK), NegozioID(FK), DataAcquisto, ScontoApplicato, TotalePagato)
+- VoceFattura		(FatturaID (FK), ProdottoID (FK) (PK = entrambi), PrezzoUnitario, Quantita)
+- Tessera			(IDTessera (PK), DataRichiesta, NegozioID (FK), ClienteCF (FK), SaldoPunti)
+- Cliente			(CF (PK), Nome, Username(FK))
+- Manager			(CF (PK), Nome, Username(FK))
+- User				(Username(PK), Password)
+
+Chiave esterna 					Referenza
+- Negozio.ManagerCF				Manager.CF
+- Vende.NegozioID				Negozio.IDNegozio
+- Vende.ProdottoID				Prodotto.IDProdotto
+- Fornisce.FornitorePIVA		Fornitore.PIVA
+- Fornisce.ProdottoID			Prodotto.IDProdotto
+- Ordina.NegozioID				Negozio.IDNegozio
+- Ordina.ProdottoID				Prodotto.IDProdotto
+- Ordina.FornitorePIVA			Fornitore.PIVA
+- Fattura.ClienteCF				Cliente.CF
+- Fattura.NegozioID				Negozio.IDNegozio
+- VoceFattura.FatturaID			Fattura.IDFattura
+- VoceFattura.ProdottoID		Prodotto.IDProdotto
+- Tessera.NegozioID				Negozio.IDNegozio
+- Tessera.ClienteCF				Cliente.CF
+- Cliente.Username				User.Username
+- Manager.Username				User.Username
