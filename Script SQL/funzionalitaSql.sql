@@ -2,11 +2,9 @@
 	CREATE OR REPLACE FUNCTION aggiorna_punti_tessera()
 	RETURNS TRIGGER AS $$
 	BEGIN
-	  -- Se il cliente ha una tessera
 	  IF EXISTS (
 	    SELECT 1 FROM Tessera WHERE ClienteCF = NEW.ClienteCF
 	  ) THEN
-	    -- Aggiorna il saldo punti sommando i punti derivati dall'acquisto
 	    UPDATE Tessera
 	    SET SaldoPunti = SaldoPunti + FLOOR(NEW.TotalePagato)
 	    WHERE ClienteCF = NEW.ClienteCF;
@@ -31,7 +29,7 @@
 	    p_importo NUMERIC,
 	    p_sconto BOOLEAN
 	)
-	RETURNS TEXT -- esempio: "OK_SCONTO_15_42"
+	RETURNS TEXT
 	AS $$
 	DECLARE
 	    v_punti INTEGER;
@@ -51,7 +49,7 @@
 	        RAISE EXCEPTION 'Il cliente non possiede una tessera fedeltà';
 	    END IF;
 	
-	    -- Se è stato richiesto lo sconto
+	    -- Se sconto richiesto
 	    IF p_sconto THEN
 	        IF v_punti >= 300 THEN
 	            v_soglia_usata := 300;
@@ -64,7 +62,7 @@
 	            v_percentuale := 5;
 	        END IF;
 	
-	        -- Se si può applicare sconto
+	        -- Se può applicare sconto
 	        IF v_soglia_usata > 0 THEN
 	            v_sconto_euro := ROUND(LEAST(p_importo * v_percentuale / 100, 100), 2);
 	            v_totale_finale := p_importo - v_sconto_euro;
@@ -76,12 +74,12 @@
 	        v_flag_testo := 'OK_SENZA_RICHIESTA';
 	    END IF;
 	
-	    -- Inserisce la fattura
+	    -- Inserisce fattura
 	    INSERT INTO Fattura (ClienteCF, NegozioID, DataAcquisto, ScontoApplicato, TotalePagato)
 	    VALUES (p_CF_cliente, p_ID_negozio, CURRENT_DATE, v_percentuale, v_totale_finale)
 	    RETURNING IDFattura INTO v_id_fattura;
 	
-	    -- Se applicato sconto, scala punti
+	    -- Se applicato sconto scala punti
 	    IF v_soglia_usata > 0 THEN
 	        UPDATE Tessera
 	        SET SaldoPunti = SaldoPunti - v_soglia_usata
@@ -95,7 +93,7 @@
 
 
 
--- Aggiornamento disponibilit`a prodotti dai fornitori:
+-- Aggiornamento disponibilita prodotti dai fornitori:
 	CREATE OR REPLACE FUNCTION aggiorna_disponibilita_fornitore()
 	RETURNS TRIGGER AS $$
 	BEGIN
@@ -140,7 +138,7 @@
 	    RETURN 'NEGOZIO_CHIUSO';
 	  END IF;
 	
-	  -- Seleziona il fornitore con disponibilità sufficiente e prezzo minimo
+	  -- Seleziona fornitore con disponibilità e prezzo minimo
 	  SELECT FornitorePIVA
 	  INTO v_fornitore_scelto
 	  FROM Fornisce
@@ -149,12 +147,12 @@
 	  ORDER BY PrezzoUnitario ASC
 	  LIMIT 1;
 	
-	  -- Se non c'è fornitore disponibile, segnala errore
+	  -- Se fornitore non disponibile segnala errore
 	  IF NOT FOUND THEN
 	    RETURN 'NESSUN_FORNITORE_DISPONIBILE';
 	  END IF;
 	
-	  -- Inserisce l’ordine nella tabella Ordina
+	  -- Inserisce ordine
 	  INSERT INTO Ordina (NegozioID, ProdottoID, FornitorePIVA, DataConsegna, Quantita)
 	  VALUES (p_ID_negozio, p_ID_prodotto, v_fornitore_scelto, CURRENT_DATE, p_quantita);
 	
@@ -220,15 +218,15 @@
 	CREATE OR REPLACE FUNCTION gestisci_quantita_zero()
 	RETURNS TRIGGER AS $$
 	BEGIN
-	  -- Se la quantità diventa zero
+	  -- Se quantità = zero
 	  IF NEW.Quantita = 0 THEN
 	
-	    -- Elimina il prodotto dalla vendita
+	    -- Elimina prodotto dalla vendita
 	    DELETE FROM Vende
 	    WHERE NegozioID = NEW.NegozioID
 	      AND ProdottoID = NEW.ProdottoID;
 	
-	    -- Effettua ordine automatico di 1 unità usando la funzione modulare già definita
+	    -- Effettua ordine automatico di 1 unità
 	    PERFORM effettua_ordine(NEW.NegozioID, NEW.ProdottoID, 1);
 	
 	  END IF;

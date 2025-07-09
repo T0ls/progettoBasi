@@ -12,7 +12,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 	    nome VARCHAR(100)
 	) AS $$
 	BEGIN
-	    -- Cliente
+	    -- Prova con Cliente
 	    RETURN QUERY
 	    SELECT u.Username, c.CF, c.Nome
 	    FROM Utente u
@@ -20,7 +20,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 	    WHERE u.Username = p_username
 	      AND u.Password = crypt(p_password, u.Password);
 	
-	    -- Se non è cliente, prova come manager
+	    -- Prova con Manager
 	    IF NOT FOUND THEN
 	        RETURN QUERY
 	        SELECT u.Username, m.CF, m.Nome
@@ -56,7 +56,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 	        v_trovato := TRUE;
 	    END IF;
 	
-	    -- Se non trovato come cliente, prova con Manager
+	    -- Prova con Manager
 	    IF NOT v_trovato THEN
 	        SELECT u.Password INTO v_password_attuale
 	        FROM Utente u
@@ -68,7 +68,6 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 	        END IF;
 	    END IF;
 	
-	    -- Ancora non trovato: errore
 	    IF NOT v_trovato THEN
 	        RETURN 'USER_NOT_FOUND';
 	    END IF;
@@ -78,7 +77,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 	        RETURN 'WRONG_PASSWORD';
 	    END IF;
 	
-	    -- Verifica se nuova password è uguale alla vecchia
+	    -- Verifica se nuova password uguale vecchia
 	    IF v_password_attuale = crypt(p_password_nuova, v_password_attuale) THEN
 	        RETURN 'SAME_PASSWORD';
 	    END IF;
@@ -104,7 +103,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 	DECLARE
 	    v_username VARCHAR(50);
 	BEGIN
-	    -- Ottieni username associato
+	    -- Ottiene username
 	    SELECT Username INTO v_username
 	    FROM Cliente
 	    WHERE CF = p_cf;
@@ -113,7 +112,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 	        RETURN 'CLIENTE_NOT_FOUND';
 	    END IF;
 	
-	    -- Rimuove il Cliente (CASCADE elimina anche la Tessera) e l'Utente
+	    -- Rimuove Cliente e l'Utente
 	    DELETE FROM Cliente WHERE CF = p_cf;
 	    DELETE FROM Utente WHERE Username = v_username;
 	
@@ -130,17 +129,17 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 	)
 	RETURNS TEXT AS $$
 	BEGIN
-	    -- Verifica se esiste già lo username
+	    -- Verifica se esiste lo username
 	    IF EXISTS (SELECT 1 FROM Utente WHERE Username = p_username) THEN
 	        RETURN 'USERNAME_DUPLICATO';
 	    END IF;
 	
-	    -- Verifica se esiste già il cliente
+	    -- Verifica se esiste il cliente
 	    IF EXISTS (SELECT 1 FROM Cliente WHERE CF = p_cf) THEN
 	        RETURN 'CF_DUPLICATO';
 	    END IF;
 	
-	    -- Crea utente con password di default '1234'
+	    -- Crea utente con password '1234'
 	    INSERT INTO Utente (Username, Password)
 	    VALUES (p_username, crypt('1234', gen_salt('bf')));
 	
@@ -170,18 +169,18 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 	    IF p_campo = 'nome' THEN
 	        UPDATE Cliente SET Nome = p_valore_nuovo WHERE CF = p_cf_attuale;
 	    ELSIF p_campo = 'cf' THEN
-	        -- Verifica che il nuovo CF non sia già usato
+	        -- Verifica che nuovo CF non sia usato
 	        IF EXISTS (SELECT 1 FROM Cliente WHERE CF = p_valore_nuovo) THEN
 	            RETURN 'CF_DUPLICATO';
 	        END IF;
 	        UPDATE Cliente SET CF = p_valore_nuovo WHERE CF = p_cf_attuale;
 	    ELSIF p_campo = 'username' THEN
-	        -- Verifica che username non sia già usato
+	        -- Verifica che username non sia usato
 	        IF EXISTS (SELECT 1 FROM Utente WHERE Username = p_valore_nuovo) THEN
 	            RETURN 'USERNAME_DUPLICATO';
 	        END IF;
 	
-	        -- Modifica sia Cliente che Utente
+	        -- Modifica Cliente e Utente
 	        UPDATE Utente SET Username = p_valore_nuovo
 	        WHERE Username = (SELECT Username FROM Cliente WHERE CF = p_cf_attuale);
 	
@@ -205,7 +204,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 	)
 	RETURNS TEXT AS $$
 	BEGIN
-	    -- Controlla duplicato opzionale (se necessario)
+	    -- Controlla duplicato
 	    IF EXISTS (SELECT 1 FROM Prodotto WHERE Nome = p_nome) THEN
 	        RETURN 'NOME_DUPLICATO';
 	    END IF;
@@ -271,13 +270,13 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 	)
 	RETURNS TEXT AS $$
 	BEGIN
-	    -- Se CF manager è specificato, controlla che esista
+	    -- Se CF manager specificato, controlla esistenza
 	    IF p_cf_manager IS NOT NULL AND
 	       NOT EXISTS (SELECT 1 FROM Manager WHERE CF = p_cf_manager) THEN
 	        RETURN 'MANAGER_NOT_FOUND';
 	    END IF;
 	
-	    -- Inserisci negozio
+	    -- Inserisce negozio
 	    INSERT INTO Negozio (OrariApertura, Indirizzo, ManagerCF)
 	    VALUES (p_orari, p_indirizzo, p_cf_manager);
 	
@@ -296,7 +295,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 	        RETURN 'NEGOZIO_NOT_FOUND';
 	    END IF;
 	
-	    -- Aggiorna lo stato del negozio invece di eliminarlo
+	    -- Aggiorna stato negozio e orari a NULL 
 	    UPDATE Negozio
 	    SET Aperto = FALSE,
 	        OrariApertura = NULL
@@ -323,7 +322,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 	    ELSIF p_campo = 'indirizzo' THEN
 	        UPDATE Negozio SET Indirizzo = p_valore WHERE IDNegozio = p_id;
 	    ELSIF p_campo = 'manager' THEN
-	        -- Verifica che il nuovo manager esista
+	        -- Verifica che nuovo manager esista
 	        IF NOT EXISTS (SELECT 1 FROM Manager WHERE CF = p_valore) THEN
 	            RETURN 'MANAGER_NOT_FOUND';
 	        END IF;
@@ -366,7 +365,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 	        RETURN 'PRODOTTO_GIA_PRESENTE';
 	    END IF;
 	
-	    -- Inserisce
+	    -- Inserisce prodotto
 	    INSERT INTO Vende (NegozioID, ProdottoID, Prezzo, Quantita)
 	    VALUES (p_id_negozio, p_id_prodotto, p_prezzo, p_quantita);
 	
@@ -487,7 +486,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 	        WHERE PIVA = p_piva_attuale;
 	
 	    ELSIF p_campo = 'piva' THEN
-	        -- Verifica che la nuova PIVA non sia già usata
+	        -- Verifica che nuova PIVA non sia usata
 	        IF EXISTS (SELECT 1 FROM Fornitore WHERE PIVA = p_valore) THEN
 	            RETURN 'PIVA_DUPLICATA';
 	        END IF;
@@ -517,7 +516,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 	)
 	RETURNS TEXT AS $$
 	BEGIN
-	    -- Controlli esistenza fornitore e prodotto
+	    -- Controlla esistenza fornitore e prodotto
 	    IF NOT EXISTS (SELECT 1 FROM Fornitore WHERE PIVA = p_piva) THEN
 	        RETURN 'FORNITORE_NOT_FOUND';
 	    END IF;
@@ -634,23 +633,23 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- Effettua acquisto:
 	CREATE OR REPLACE FUNCTION effettua_acquisto(
-	    p_CF_cliente VARCHAR,          -- Codice fiscale del cliente
-	    p_ID_negozio INTEGER,          -- ID del negozio dove si acquista
-	    p_prodotti INTEGER[],          -- Array di ID prodotto da acquistare
-	    p_quantita INTEGER[],          -- Array di quantità corrispondenti
-	    p_applica_sconto BOOLEAN       -- TRUE se il cliente vuole usare lo sconto
+	    p_CF_cliente VARCHAR,
+	    p_ID_negozio INTEGER,
+	    p_prodotti INTEGER[],
+	    p_quantita INTEGER[],
+	    p_applica_sconto BOOLEAN
 	)
 	RETURNS TEXT AS $$
 	DECLARE
-	    i INTEGER;                          -- indice del ciclo
-	    v_id_prodotto INTEGER;             -- ID del prodotto corrente
-	    v_qta INTEGER;                     -- quantità richiesta del prodotto corrente
-	    v_qta_disponibile INTEGER;         -- quantità disponibile nel negozio
-	    v_prezzo_unitario NUMERIC;        -- prezzo del prodotto nel negozio
-	    v_totale NUMERIC := 0;            -- totale iniziale della spesa (senza sconto)
-	    v_id_fattura INTEGER;             -- ID della fattura generata
-	    v_output TEXT;                    -- output della funzione sconto (es: OK_SCONTO_15_42)
-	    v_id_string TEXT;                 -- parte finale dell'output con solo l'ID fattura
+	    i INTEGER;
+	    v_id_prodotto INTEGER;
+	    v_qta INTEGER;
+	    v_qta_disponibile INTEGER;
+	    v_prezzo_unitario NUMERIC;
+	    v_totale NUMERIC := 0;
+	    v_id_fattura INTEGER;
+	    v_output TEXT;
+	    v_id_string TEXT;
 	BEGIN
 	    -- Verifica che gli array abbiano stessa lunghezza
 	    IF array_length(p_prodotti, 1) IS DISTINCT FROM array_length(p_quantita, 1) THEN
@@ -662,36 +661,36 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 	        v_id_prodotto := p_prodotti[i];
 	        v_qta := p_quantita[i];
 	
-	        -- Ottiene prezzo e disponibilità per il prodotto richiesto
+	        -- Ottiene prezzo e disponibilità del prodotto
 	        SELECT Prezzo, Quantita INTO v_prezzo_unitario, v_qta_disponibile
 	        FROM Vende
 	        WHERE NegozioID = p_ID_negozio AND ProdottoID = v_id_prodotto;
 	
-	        -- Se il prodotto non esiste nel negozio, interrompe
+	        -- Se prodotto non esiste nel negozio interrompe
 	        IF NOT FOUND THEN
 	            RETURN 'PRODOTTO_NON_PRESENTE';
-	        -- Se la quantità richiesta eccede la disponibilità, interrompe
+	        -- Se quantità richiesta > disponibilità interrompe
 	        ELSIF v_qta_disponibile < v_qta THEN
 	            RETURN 'QUANTITA_NON_DISPONIBILE';
 	        END IF;
 	
-	        -- Accumula il costo totale
+	        -- Accumula costo totale
 	        v_totale := v_totale + (v_prezzo_unitario * v_qta);
 	    END LOOP;
 	
-	    -- Crea la fattura, con o senza sconto
+	    -- Crea la fattura
 	    v_output := acquisto_cliente(p_CF_cliente, p_ID_negozio, v_totale, p_applica_sconto);
 	
-	    -- Estrae l’ID fattura dalla stringa (es: da OK_SCONTO_15_42 prende 42)
+	    -- Estrae l’ID fattura dalla stringa di output
 	    v_id_string := SPLIT_PART(v_output, '_', 4);
 	    v_id_fattura := v_id_string::INTEGER;
 	
-	    -- Inserisce righe in VoceFattura e aggiorna magazzino Vende
+	    -- Inserisce righe in VoceFattura e aggiorna magazzino negozio
 	    FOR i IN 1 .. array_length(p_prodotti, 1) LOOP
 	        v_id_prodotto := p_prodotti[i];
 	        v_qta := p_quantita[i];
 	
-	        -- Ottiene di nuovo il prezzo del prodotto (sicurezza contro variazioni)
+	        -- Ottiene prezzo del prodotto
 	        SELECT Prezzo INTO v_prezzo_unitario
 	        FROM Vende
 	        WHERE NegozioID = p_ID_negozio AND ProdottoID = v_id_prodotto;
@@ -700,13 +699,13 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 	        INSERT INTO VoceFattura (FatturaID, ProdottoID, PrezzoUnitario, Quantita)
 	        VALUES (v_id_fattura, v_id_prodotto, v_prezzo_unitario, v_qta);
 	
-	        -- Aggiorna disponibilità magazzino nel negozio
+	        -- Aggiorna disponibilità prodotto nel negozio
 	        UPDATE Vende
 	        SET Quantita = Quantita - v_qta
 	        WHERE NegozioID = p_ID_negozio AND ProdottoID = v_id_prodotto;
 	    END LOOP;
 	
-	    -- Ritorna la stringa di output della funzione fattura (include info sullo sconto)
+	    -- Ritorna la stringa di output della funzione fattura
 	    RETURN v_output;
 	END;
 	$$ LANGUAGE plpgsql;
