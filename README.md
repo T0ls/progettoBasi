@@ -80,4 +80,4 @@ Il progetto include l’utilizzo di:
 
 ---
 
-Per ulteriori informazioni consultare la [documentazione tecnica](./Documentazione.pdf) e il [manuale utente](./Manuale\ utente.pdf).
+Per ulteriori informazioni consultare la [documentazione tecnica](./Documentazione.pdf) e il [manuale utente](./Manuale utente.pdf).
